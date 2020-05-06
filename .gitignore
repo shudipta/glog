@@ -16,3 +16,6 @@
 
 # editor
 .idea/
+
+# git
+.gitattributes
