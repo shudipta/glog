@@ -9,9 +9,10 @@ import (
 )
 
 type Logger interface {
-	Meta(meta int) *logger
-	LogType(lType int) *logger
-	Skip(skip int) *logger
+	Meta(meta int) Logger
+	LogType(lType int) Logger
+	Skip(skip int) Logger
+	LogTypeColorFormat(format map[int]string) Logger
 
 	Log(lType int, str string) (n int, err error)
 
@@ -83,18 +84,17 @@ const (
 	Ash    = "\033[1;37m%s\033[0m"
 )
 
-var coloredStr = map[int]string{
-	LogTypePrint: White,
-	LogTypeInfo:  Cyan,
-	LogTypeWarn:  Yellow,
-	LogTypeDebug: Purple,
-	LogTypeError: Red,
-}
-
 var myLogger Logger = &logger{
 	meta:    MetaDefault,
 	logType: LogTypeDefault,
 	skip:    0,
+	logTypeColoreFormat: map[int]string{
+		LogTypePrint: White,
+		LogTypeInfo:  Cyan,
+		LogTypeWarn:  Yellow,
+		LogTypeDebug: Purple,
+		LogTypeError: Red,
+	},
 }
 
 func Default() Logger {
@@ -110,26 +110,35 @@ func New(meta, logType int) Logger {
 }
 
 type logger struct {
-	meta    int
-	logType int
-	skip    int
+	meta                int
+	logType             int
+	skip                int
+	logTypeColoreFormat map[int]string
 }
 
-func Meta(meta int) *logger { return myLogger.Meta(meta) }
-func (l *logger) Meta(meta int) *logger {
+func Meta(meta int) Logger { return myLogger.Meta(meta) }
+func (l *logger) Meta(meta int) Logger {
 	l.meta = meta
 	return l
 }
 
-func LogType(lType int) *logger { return myLogger.LogType(lType) }
-func (l *logger) LogType(lType int) *logger {
+func LogType(lType int) Logger { return myLogger.LogType(lType) }
+func (l *logger) LogType(lType int) Logger {
 	l.logType = lType
 	return l
 }
 
-func Skip(skip int) *logger { return myLogger.Skip(skip) }
-func (l *logger) Skip(skip int) *logger {
+func Skip(skip int) Logger { return myLogger.Skip(skip) }
+func (l *logger) Skip(skip int) Logger {
 	l.skip = skip
+	return l
+}
+
+func LogTypeColorFormat(format map[int]string) Logger { return myLogger.LogTypeColorFormat(format) }
+func (l *logger) LogTypeColorFormat(format map[int]string) Logger {
+	for lType, color := range format {
+		l.logTypeColoreFormat[lType] = color
+	}
 	return l
 }
 
@@ -257,7 +266,7 @@ func (l *logger) log(lType int, str string) (n int, err error) {
 	prefix := fmt.Sprintf(Green, t.Format(l.timeFormatStr()))
 	prefix += fmt.Sprintf(Blue, l.caller())
 	if l.logType&lType > 0 {
-		prefix += fmt.Sprintf(coloredStr[lType], logType[lType])
+		prefix += fmt.Sprintf(l.logTypeColoreFormat[lType], logType[lType])
 	}
 
 	return fmt.Print(prefix + str)
